@@ -1,52 +1,339 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Support Reelr</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      max-width: 700px;
-      margin: 40px auto;
-      padding: 0 20px;
-      line-height: 1.6;
-      color: #1a1a1a;
-    }
-    h1 { font-size: 28px; }
-    h2 { font-size: 20px; margin-top: 32px; }
-    a { color: #0066cc; }
-    .faq { margin-bottom: 16px; }
-    .faq strong { display: block; margin-bottom: 4px; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reelr Support</title>
+<style>
+  :root {
+    --bg: #0b0a12;
+    --surface: #16141f;
+    --surface-2: #1e1b29;
+    --accent: #7c5cff;
+    --accent-soft: rgba(124, 92, 255, 0.16);
+    --text: #f1eef9;
+    --muted: #9b96b0;
+    --border: rgba(255, 255, 255, 0.07);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .bg-glow {
+    position: fixed;
+    top: -20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(circle, rgba(124, 92, 255, 0.18), transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrap {
+    position: relative;
+    z-index: 1;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 64px 24px 96px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #6d4dff, #b388ff);
+    margin-bottom: 18px;
+    box-shadow: 0 8px 28px rgba(124, 92, 255, 0.35);
+  }
+
+  .logo svg { width: 24px; height: 24px; }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 440px;
+    margin: 0 auto;
+  }
+
+  /* Language switch */
+  .lang-switch {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin: 32px auto 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px;
+    width: fit-content;
+  }
+
+  .lang-switch button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 8px 20px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .lang-switch button.active {
+    background: var(--accent-soft);
+    color: var(--text);
+  }
+
+  section.lang { display: none; }
+  section.lang.active { display: block; animation: fade 0.25s ease; }
+
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  h2.section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin: 36px 0 14px;
+  }
+
+  .faq-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+
+  .faq-item summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 18px 20px;
+    font-weight: 600;
+    font-size: 15.5px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .faq-item summary::-webkit-details-marker { display: none; }
+
+  .faq-item summary::after {
+    content: "";
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    position: relative;
+    transition: transform 0.25s ease, background 0.2s ease;
+  }
+
+  .faq-item summary::before {
+    content: "";
+    position: absolute;
+    /* placeholder to keep marker centered via ::after only */
+  }
+
+  .faq-item summary::after {
+    background-image:
+      linear-gradient(var(--muted), var(--muted)),
+      linear-gradient(var(--muted), var(--muted));
+    background-size: 9px 1.5px, 1.5px 9px;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+
+  .faq-item[open] summary::after {
+    transform: rotate(45deg);
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-size: 9px 1.5px;
+  }
+
+  .faq-item[open] summary {
+    color: var(--accent);
+  }
+
+  .faq-answer {
+    padding: 0 20px 18px;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+
+  .contact {
+    margin-top: 36px;
+    padding: 22px 24px;
+    border-radius: 14px;
+    background: var(--accent-soft);
+    border: 1px solid rgba(124, 92, 255, 0.25);
+    text-align: center;
+  }
+
+  .contact p { margin: 0 0 10px; color: var(--text); font-size: 14.5px; }
+  .contact a {
+    color: var(--text);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--accent);
+    padding-bottom: 1px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 56px;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .faq-item summary::after, section.lang.active { transition: none; animation: none; }
+  }
+</style>
 </head>
 <body>
-  <h1>Support Reelr</h1>
-  <p>Besoin d'aide avec Reelr ? Vous trouverez ci-dessous les réponses aux questions les plus fréquentes. Pour toute autre question, contactez-nous par email.</p>
+  <div class="bg-glow"></div>
+  <div class="wrap">
+    <header>
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 5v14l11-7L8 5z" fill="#ffffff"/>
+        </svg>
+      </div>
+      <h1>Reelr Support</h1>
+      <p class="subtitle" id="subtitle">
+        Need help with Reelr? Find answers below, or get in touch &mdash; we're happy to help.
+      </p>
+    </header>
 
-  <h2>Questions fréquentes</h2>
+    <div class="lang-switch">
+      <button class="active" data-lang="en" onclick="setLang('en')">ENGLISH</button>
+      <button data-lang="fr" onclick="setLang('fr')">FRAN&Ccedil;AIS</button>
+    </div>
 
-  <div class="faq">
-    <strong>Comment sauvegarder une vidéo dans Reelr ?</strong>
-    Depuis TikTok, YouTube, Instagram ou Facebook, appuyez sur le bouton "Partager", puis sélectionnez Reelr dans le menu de partage. La vidéo sera automatiquement ajoutée et classée.
+    <!-- ENGLISH -->
+    <section class="lang active" id="lang-en">
+      <h2 class="section-title">Frequently asked questions</h2>
+
+      <details class="faq-item" open>
+        <summary>How do I save a video to Reelr?</summary>
+        <div class="faq-answer">
+          From TikTok, YouTube, Instagram, or Facebook, tap the &ldquo;Share&rdquo; button, then select Reelr from the share menu. The video is automatically added and categorized.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>How does Reelr categorize my videos?</summary>
+        <div class="faq-answer">
+          Reelr uses AI to analyze the content of each video and automatically places it in the most relevant category &mdash; cooking, sports, home decor, and more.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Can I move a video to a different category?</summary>
+        <div class="faq-answer">
+          Yes. Open the video and manually choose a new category at any time.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Does Reelr work with Instagram and Facebook?</summary>
+        <div class="faq-answer">
+          Yes, but due to restrictions on these platforms, some metadata (title, thumbnail) may be limited.
+        </div>
+      </details>
+
+      <div class="contact">
+        <p>Still need help? Questions, suggestions, or bug reports &mdash; we read everything.</p>
+        <a href="mailto:hello@myreelr.app">hello@myreelr.app</a>
+      </div>
+    </section>
+
+    <!-- FRANCAIS -->
+    <section class="lang" id="lang-fr">
+      <h2 class="section-title">Questions fr&eacute;quentes</h2>
+
+      <details class="faq-item" open>
+        <summary>Comment sauvegarder une vid&eacute;o dans Reelr&nbsp;?</summary>
+        <div class="faq-answer">
+          Depuis TikTok, YouTube, Instagram ou Facebook, appuyez sur le bouton &laquo;&nbsp;Partager&nbsp;&raquo;, puis s&eacute;lectionnez Reelr dans le menu de partage. La vid&eacute;o sera automatiquement ajout&eacute;e et class&eacute;e.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Comment Reelr classe-t-il mes vid&eacute;os&nbsp;?</summary>
+        <div class="faq-answer">
+          Reelr analyse le contenu de chaque vid&eacute;o gr&acirc;ce &agrave; l&rsquo;intelligence artificielle et la place automatiquement dans la cat&eacute;gorie la plus pertinente (cuisine, sport, d&eacute;co, etc.).
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Puis-je d&eacute;placer une vid&eacute;o vers une autre cat&eacute;gorie&nbsp;?</summary>
+        <div class="faq-answer">
+          Oui, ouvrez la vid&eacute;o et choisissez une nouvelle cat&eacute;gorie manuellement &agrave; tout moment.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Reelr fonctionne-t-il avec Instagram et Facebook&nbsp;?</summary>
+        <div class="faq-answer">
+          Oui, mais en raison des restrictions de ces plateformes, certaines m&eacute;tadonn&eacute;es (titre, miniature) peuvent &ecirc;tre limit&eacute;es.
+        </div>
+      </details>
+
+      <div class="contact">
+        <p>Besoin d&rsquo;aide&nbsp;? Pour toute question, suggestion ou signalement de bug, &eacute;crivez-nous&nbsp;:</p>
+        <a href="mailto:hello@myreelr.app">hello@myreelr.app</a>
+      </div>
+    </section>
+
+    <footer>&copy; 2026 Reelr &mdash; myreelr.app</footer>
   </div>
 
-  <div class="faq">
-    <strong>Comment Reelr classe-t-il mes vidéos ?</strong>
-    Reelr analyse le contenu de chaque vidéo grâce à l'intelligence artificielle et la place automatiquement dans la catégorie la plus pertinente (cuisine, sport, déco, etc.).
-  </div>
-
-  <div class="faq">
-    <strong>Puis-je déplacer une vidéo vers une autre catégorie ?</strong>
-    Oui, ouvrez la vidéo et choisissez une nouvelle catégorie manuellement à tout moment.
-  </div>
-
-  <div class="faq">
-    <strong>Reelr fonctionne-t-il avec Instagram et Facebook ?</strong>
-    Oui, mais en raison des restrictions de ces plateformes, certaines métadonnées (titre, miniature) peuvent être limitées.
-  </div>
-
-  <h2>Contact</h2>
-  <p>Pour toute question, suggestion ou signalement de bug, écrivez-nous à : <a href="mailto:hello@myreelr.app">hello@myreelr.app</a></p>
+  <script>
+    const subtitles = {
+      en: "Need help with Reelr? Find answers below, or get in touch &mdash; we're happy to help.",
+      fr: "Besoin d&rsquo;aide avec Reelr&nbsp;? Vous trouverez ci-dessous les r&eacute;ponses aux questions les plus fr&eacute;quentes."
+    };
+    function setLang(lang) {
+      document.querySelectorAll('.lang-switch button').forEach(b =>
+        b.classList.toggle('active', b.dataset.lang === lang));
+      document.querySelectorAll('section.lang').forEach(s =>
+        s.classList.toggle('active', s.id === 'lang-' + lang));
+      document.getElementById('subtitle').innerHTML = subtitles[lang];
+    }
+  </script>
 </body>
 </html>
