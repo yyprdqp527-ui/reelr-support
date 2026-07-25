@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Reelr — Playlist partagée</title>
+<style>
+  :root {
+    --bg: #0A0E1F;
+    --card-border: rgba(255,255,255,0.06);
+    --text-primary: #F7F7FB;
+    --text-secondary: rgba(255,255,255,0.5);
+    --accent: #A855F7;
+    --accent-dark: #7C3AED;
+    --gradient-start: #7C3AED;
+    --gradient-end: #A855F7;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 40px 20px 60px;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .logo-text {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    background: linear-gradient(135deg, #8B5CF6 0%, #2563EB 60%, #22D3EE 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--card-border);
+    border-radius: 22px;
+    padding: 28px 24px 32px;
+    text-align: center;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.4px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .title {
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0 0 10px;
+  }
+  .subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 24px;
+  }
+  .thumbs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 4px 2px 20px;
+    margin-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .thumbs::-webkit-scrollbar { display: none; }
+  .thumb {
+    flex: 0 0 auto;
+    width: 88px;
+    height: 132px;
+    border-radius: 14px;
+    background-color: rgba(255,255,255,0.06);
+    background-size: cover;
+    background-position: center;
+    border: 1px solid var(--card-border);
+  }
+  .thumb-more {
+    flex: 0 0 auto;
+    width: 88px;
+    height: 132px;
+    border-radius: 14px;
+    background: rgba(124,58,237,0.18);
+    border: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .cta {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(90deg, var(--gradient-start), var(--gradient-end));
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .fallback-note {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+  .fallback-note a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+  .error-card {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo-row">
+      <div class="logo-text">Reelr</div>
+    </div>
+    <div id="content"></div>
+  </div>
+
+<script>
+(function () {
+  var STRINGS = {
+    fr: {
+      eyebrow: "PLAYLIST PARTAGÉE",
+      titleTemplate: "Un ami te propose de découvrir sa playlist « {name} »",
+      subtitleTemplate: "{count} vidéo(s) sélectionnée(s) pour toi. Ouvre-la dans Reelr pour choisir celles que tu veux garder.",
+      cta: "Ouvrir dans Reelr",
+      fallbackNote: "Tu n'as pas encore Reelr ? Tu vas être redirigé vers le store dans un instant, ou",
+      fallbackLink: "clique ici",
+      errorTitle: "Lien invalide",
+      errorSubtitle: "Cette playlist n'a pas pu être chargée. Demande à ton ami de te renvoyer le lien.",
+      more: "encore"
+    },
+    en: {
+      eyebrow: "SHARED PLAYLIST",
+      titleTemplate: "A friend wants to share their playlist \u201c{name}\u201d",
+      subtitleTemplate: "{count} video(s) picked for you. Open it in Reelr to choose the ones you want to keep.",
+      cta: "Open in Reelr",
+      fallbackNote: "Don't have Reelr yet? You'll be redirected to the store shortly, or",
+      fallbackLink: "click here",
+      errorTitle: "Invalid link",
+      errorSubtitle: "This playlist couldn't be loaded. Ask your friend to send the link again.",
+      more: "more"
+    }
+  };
+
+  var APP_STORE_URL = "https://apps.apple.com/app/id6779609511";
+  var PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.room79.reelr";
+
+  function detectLang() {
+    var nav = navigator.language || navigator.userLanguage || "en";
+    return nav.toLowerCase().indexOf("fr") === 0 ? "fr" : "en";
+  }
+
+  function detectPlatform() {
+    var ua = navigator.userAgent || "";
+    if (/iPhone|iPad|iPod/i.test(ua)) return "ios";
+    if (/Android/i.test(ua)) return "android";
+    return "unknown";
+  }
+
+  function storeUrlFor(platform) {
+    if (platform === "ios") return APP_STORE_URL;
+    if (platform === "android") return PLAY_STORE_URL;
+    return APP_STORE_URL;
+  }
+
+  function decodePlaylist() {
+    var params = new URLSearchParams(window.location.search);
+    var name = params.get("name");
+    var itemsParam = params.get("items");
+    if (!name || !itemsParam) return null;
+    try {
+      var base64 = itemsParam.replace(/-/g, "+").replace(/_/g, "/");
+      var padded = base64 + "===".slice((base64.length + 3) % 4);
+      var json = decodeURIComponent(escape(window.atob(padded)));
+      var items = JSON.parse(json);
+      if (!Array.isArray(items) || items.length === 0) return null;
+      return { name: name, items: items };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function render() {
+    var lang = detectLang();
+    var t = STRINGS[lang];
+    var platform = detectPlatform();
+    var playlist = decodePlaylist();
+    var content = document.getElementById("content");
+
+    if (!playlist) {
+      content.innerHTML =
+        '<div class="card error-card">' +
+          '<div class="title">' + t.errorTitle + '</div>' +
+          '<div class="subtitle">' + t.errorSubtitle + '</div>' +
+        '</div>';
+      return;
+    }
+
+    var rawParams = window.location.search;
+    var appLink = "reelr://playlist" + rawParams;
+    var storeUrl = storeUrlFor(platform);
+
+    var maxThumbs = 6;
+    var thumbsHtml = "";
+    playlist.items.slice(0, maxThumbs).forEach(function (item) {
+      var bg = item.th ? 'style="background-image:url(\'' + escapeHtml(item.th) + '\')"' : "";
+      thumbsHtml += '<div class="thumb" ' + bg + '></div>';
+    });
+    if (playlist.items.length > maxThumbs) {
+      thumbsHtml += '<div class="thumb-more">+' + (playlist.items.length - maxThumbs) + '</div>';
+    }
+
+    var title = t.titleTemplate.replace("{name}", escapeHtml(playlist.name));
+    var subtitle = t.subtitleTemplate.replace("{count}", playlist.items.length);
+
+    content.innerHTML =
+      '<div class="card">' +
+        '<div class="eyebrow">' + t.eyebrow + '</div>' +
+        '<div class="title">' + title + '</div>' +
+        '<div class="subtitle">' + subtitle + '</div>' +
+        '<div class="thumbs">' + thumbsHtml + '</div>' +
+        '<a class="cta" id="openBtn" href="' + appLink + '">' + t.cta + '</a>' +
+        '<div class="fallback-note">' + t.fallbackNote + ' <a href="' + storeUrl + '">' + t.fallbackLink + '</a></div>' +
+      '</div>';
+
+    var openBtn = document.getElementById("openBtn");
+    openBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      var start = Date.now();
+      window.location.href = appLink;
+      setTimeout(function () {
+        // Si on est toujours sur la page après ~1.5s (l'app ne s'est pas
+        // ouverte), on considère que Reelr n'est pas installée.
+        if (Date.now() - start < 3000 && !document.hidden) {
+          window.location.href = storeUrl;
+        }
+      }, 1500);
+    });
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
