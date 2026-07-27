@@ -259,17 +259,28 @@
       '</div>';
 
     var openBtn = document.getElementById("openBtn");
-    openBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      var start = Date.now();
-      window.location.href = appLink;
-      setTimeout(function () {
-        // Si on est toujours sur la page après ~1.5s (l'app ne s'est pas
-        // ouverte), on considère que Reelr n'est pas installée.
-        if (Date.now() - start < 3000 && !document.hidden) {
-          window.location.href = storeUrl;
+    // Pas de preventDefault() ici : un clic natif sur <a href="reelr://...">
+    // ouvre l'app de façon bien plus fiable (notamment sur iOS Safari)
+    // qu'une navigation déclenchée en JS. Le lien navigue naturellement ;
+    // on programme juste un repli vers le store, annulé dès que la page
+    // quitte le premier plan (preuve que l'app s'est ouverte).
+    openBtn.addEventListener("click", function () {
+      var redirected = false;
+      var toStore = function () {
+        if (redirected) return;
+        redirected = true;
+        window.location.href = storeUrl;
+      };
+      var cancel = function () { redirected = true; };
+      window.addEventListener("blur", cancel, { once: true });
+      window.addEventListener("pagehide", cancel, { once: true });
+      document.addEventListener("visibilitychange", function onVis() {
+        if (document.hidden) {
+          cancel();
+          document.removeEventListener("visibilitychange", onVis);
         }
-      }, 1500);
+      });
+      setTimeout(toStore, 1500);
     });
   }
 
