@@ -4,7 +4,7 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.room79.reelr",
-      "sha256_cert_fingerprints": ["E7:DD:A7:C0:EB:D5:FB:5E:53:F9:36:87:56:58:20:FF:F1:67:D1:F3:DA:26:A4:7F:8A:0C:60:80:85:68:B7:6F"]
+      "sha256_cert_fingerprints": ["F5:9B:A7:34:3C:93:B6:85:55:8D:84:45:FA:6F:44:B5:32:11:75:DD:09:9A:F0:F4:AA:EB:6D:53:6B:D6:5A:C0"]
     }
   }
 ]
