@@ -266,11 +266,12 @@
       // Vignette connue : tentee en premier ; un passage ulterieur
       // (preloadThumbnails, appele une fois tout le HTML injecte) bascule
       // automatiquement sur le logo de plateforme si l'image echoue a
-      // charger — meme logique que dans l'app (tokens Facebook a duree de
+      // charger, meme logique que dans l'app (tokens Facebook a duree de
       // vie tres courte, expirent souvent avant meme l'ouverture du lien
-      // par le destinataire). Jamais de <script> injecte dans le HTML ici :
-      // un "</script>" litteral dans une chaine suffit a casser le
-      // <script> englobant, quel que soit son contexte JS.
+      // par le destinataire). Jamais de balise de fermeture de script
+      // injectee dans le HTML ici : le navigateur repere cette sequence de
+      // caracteres partout dans le flux HTML brut, meme au milieu d'un
+      // commentaire ou d'une chaine JS, et referme le bloc en cours.
       var thumbId = "thumb-" + (_thumbCounter++);
       return '<div class="thumb" id="' + thumbId + '" style="background-image:url(\'' + escapeHtml(item.th) + '\')" ' +
         'data-thumb-url="' + escapeHtml(item.th) + '" data-thumb-logo="' + escapeHtml(logo || '') + '"></div>';
