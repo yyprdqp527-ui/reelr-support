@@ -240,13 +240,18 @@
     return items;
   }
 
-  function renderPlaylist(t, platform, name, items, code) {
+  function renderPlaylist(t, platform, name, items, code, rawEncodedItems) {
     var content = document.getElementById("content");
 
-    // Le lien vers l'app ne transporte lui aussi que le code — l'app ira
-    // chercher les données via le même endpoint /data/:code, jamais dans
-    // l'URL elle-même.
-    var appLink = "reelr://playlist?code=" + encodeURIComponent(code);
+    // Le lien vers l'app transporte a la fois le code (nouvelle version de
+    // l'app : va chercher les donnees via /data/:code) ET name/items en
+    // clair (versions de l'app deja installees avant ce changement, qui ne
+    // savent lire que ce format). Cette redondance n'a aucun cout : ce lien
+    // n'est jamais envoye par SMS, seule la limite de taille du lien court
+    // partage par SMS comptait (voir handleRedirect cote Worker).
+    var appLink = "reelr://playlist?code=" + encodeURIComponent(code) +
+        "&name=" + encodeURIComponent(name) +
+        "&items=" + encodeURIComponent(rawEncodedItems);
     var storeUrl = storeUrlFor(platform);
 
     var maxThumbs = 6;
@@ -321,7 +326,7 @@
         if (!data || !data.name || !data.items) throw new Error("invalid data");
         var items = decodeItems(data.items);
         if (!items) throw new Error("invalid items");
-        renderPlaylist(t, platform, data.name, items, code);
+        renderPlaylist(t, platform, data.name, items, code, data.items);
       })
       .catch(function () {
         showError(t);
