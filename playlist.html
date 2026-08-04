@@ -90,6 +90,30 @@
     background-size: cover;
     background-position: center;
     border: 1px solid var(--card-border);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .thumb-platform-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: contain;
+  }
+  .thumb-unavailable-badge {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
+    padding: 3px 5px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 8px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
   }
   .thumb-more {
     flex: 0 0 auto;
@@ -169,6 +193,7 @@
       errorTitle: "Lien invalide",
       errorSubtitle: "Cette playlist n'a pas pu être chargée. Demande à ton ami de te renvoyer le lien.",
       loading: "Chargement de la playlist…",
+      thumbUnavailable: "Vignette non disponible",
       more: "encore"
     },
     en: {
@@ -181,6 +206,7 @@
       errorTitle: "Invalid link",
       errorSubtitle: "This playlist couldn't be loaded. Ask your friend to send the link again.",
       loading: "Loading playlist…",
+      thumbUnavailable: "Thumbnail unavailable",
       more: "more"
     }
   };
@@ -211,6 +237,53 @@
     var div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  var PLATFORM_LOGOS = [
+    { match: /facebook\.com/i, logo: "icons/facebook.png" },
+    { match: /instagram\.com/i, logo: "icons/instagram.png" },
+    { match: /tiktok\.com/i, logo: "icons/tiktok.png" },
+    { match: /youtube\.com|youtu\.be/i, logo: "icons/youtube.png" },
+    { match: /twitch\.tv/i, logo: "icons/twitch.png" },
+    { match: /pinterest\.[a-z]+/i, logo: "icons/pinterest.png" },
+    { match: /reddit\.com/i, logo: "icons/reddit.png" },
+    { match: /linkedin\.com/i, logo: "icons/linkedin.png" }
+  ];
+
+  function platformLogoFor(url) {
+    for (var i = 0; i < PLATFORM_LOGOS.length; i++) {
+      if (PLATFORM_LOGOS[i].match.test(url || "")) return PLATFORM_LOGOS[i].logo;
+    }
+    return null;
+  }
+
+  function thumbHtmlFor(item, t) {
+    var logo = platformLogoFor(item.u);
+    var badge = '<div class="thumb-unavailable-badge">' + t.thumbUnavailable + '</div>';
+    if (item.th) {
+      // Vignette connue : tentee en premier, avec repli automatique sur le
+      // logo de plateforme si l'image echoue a charger (onerror), meme
+      // logique que celle deja utilisee dans l'app pour ce cas (tokens
+      // Facebook a duree de vie tres courte, expirent souvent avant meme
+      // l'ouverture du lien par le destinataire).
+      var fallbackHtml = logo
+        ? '<img class="thumb-platform-logo" src="' + logo + '">' + badge
+        : badge;
+      var thumbId = "thumb-" + Math.random().toString(36).slice(2);
+      return '<div class="thumb" id="' + thumbId + '" style="background-image:url(\'' + escapeHtml(item.th) + '\')" ' +
+        'data-fallback-id="' + thumbId + '"></div>' +
+        '<script>(function(){' +
+        'var im=new Image();im.onerror=function(){' +
+        'var el=document.getElementById(' + JSON.stringify(thumbId) + ');' +
+        'if(el){el.style.backgroundImage="none";el.innerHTML=' + JSON.stringify(fallbackHtml) + ';}' +
+        '};im.src=' + JSON.stringify(item.th) + ';' +
+        '})();</script>';
+    }
+    // Pas de vignette du tout : logo de plateforme direct.
+    return '<div class="thumb">' +
+      (logo ? '<img class="thumb-platform-logo" src="' + logo + '">' : "") +
+      badge +
+      '</div>';
   }
 
   function showLoading(t) {
@@ -257,8 +330,7 @@
     var maxThumbs = 6;
     var thumbsHtml = "";
     items.slice(0, maxThumbs).forEach(function (item) {
-      var bg = item.th ? 'style="background-image:url(\'' + escapeHtml(item.th) + '\')"' : "";
-      thumbsHtml += '<div class="thumb" ' + bg + '></div>';
+      thumbsHtml += thumbHtmlFor(item, t);
     });
     if (items.length > maxThumbs) {
       thumbsHtml += '<div class="thumb-more">+' + (items.length - maxThumbs) + '</div>';
