@@ -257,33 +257,43 @@
     return null;
   }
 
+  var _thumbCounter = 0;
+
   function thumbHtmlFor(item, t) {
     var logo = platformLogoFor(item.u);
     var badge = '<div class="thumb-unavailable-badge">' + t.thumbUnavailable + '</div>';
     if (item.th) {
-      // Vignette connue : tentee en premier, avec repli automatique sur le
-      // logo de plateforme si l'image echoue a charger (onerror), meme
-      // logique que celle deja utilisee dans l'app pour ce cas (tokens
-      // Facebook a duree de vie tres courte, expirent souvent avant meme
-      // l'ouverture du lien par le destinataire).
-      var fallbackHtml = logo
-        ? '<img class="thumb-platform-logo" src="' + logo + '">' + badge
-        : badge;
-      var thumbId = "thumb-" + Math.random().toString(36).slice(2);
+      // Vignette connue : tentee en premier ; un passage ulterieur
+      // (preloadThumbnails, appele une fois tout le HTML injecte) bascule
+      // automatiquement sur le logo de plateforme si l'image echoue a
+      // charger — meme logique que dans l'app (tokens Facebook a duree de
+      // vie tres courte, expirent souvent avant meme l'ouverture du lien
+      // par le destinataire). Jamais de <script> injecte dans le HTML ici :
+      // un "</script>" litteral dans une chaine suffit a casser le
+      // <script> englobant, quel que soit son contexte JS.
+      var thumbId = "thumb-" + (_thumbCounter++);
       return '<div class="thumb" id="' + thumbId + '" style="background-image:url(\'' + escapeHtml(item.th) + '\')" ' +
-        'data-fallback-id="' + thumbId + '"></div>' +
-        '<script>(function(){' +
-        'var im=new Image();im.onerror=function(){' +
-        'var el=document.getElementById(' + JSON.stringify(thumbId) + ');' +
-        'if(el){el.style.backgroundImage="none";el.innerHTML=' + JSON.stringify(fallbackHtml) + ';}' +
-        '};im.src=' + JSON.stringify(item.th) + ';' +
-        '})();</script>';
+        'data-thumb-url="' + escapeHtml(item.th) + '" data-thumb-logo="' + escapeHtml(logo || '') + '"></div>';
     }
     // Pas de vignette du tout : logo de plateforme direct.
     return '<div class="thumb">' +
       (logo ? '<img class="thumb-platform-logo" src="' + logo + '">' : "") +
       badge +
       '</div>';
+  }
+
+  function preloadThumbnails(t) {
+    var badge = '<div class="thumb-unavailable-badge">' + t.thumbUnavailable + '</div>';
+    document.querySelectorAll(".thumb[data-thumb-url]").forEach(function (el) {
+      var url = el.getAttribute("data-thumb-url");
+      var logo = el.getAttribute("data-thumb-logo");
+      var img = new Image();
+      img.onerror = function () {
+        el.style.backgroundImage = "none";
+        el.innerHTML = (logo ? '<img class="thumb-platform-logo" src="' + logo + '">' : "") + badge;
+      };
+      img.src = url;
+    });
   }
 
   function showLoading(t) {
@@ -348,6 +358,7 @@
         '<a class="cta" id="openBtn" href="' + appLink + '">' + t.cta + '</a>' +
         '<div class="fallback-note">' + t.fallbackNote + ' <a href="' + storeUrl + '">' + t.fallbackLink + '</a></div>' +
       '</div>';
+    preloadThumbnails(t);
 
     var openBtn = document.getElementById("openBtn");
     // Pas de preventDefault() ici : un clic natif sur <a href="reelr://...">
