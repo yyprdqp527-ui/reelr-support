@@ -129,10 +129,22 @@
     color: var(--accent);
     text-decoration: none;
   }
-  .error-card {
+  .error-card, .loading-card {
     text-align: center;
     padding: 60px 20px;
     color: var(--text-secondary);
+  }
+  .spinner {
+    width: 32px;
+    height: 32px;
+    margin: 0 auto 16px;
+    border: 3px solid rgba(168,85,247,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
   }
 </style>
 </head>
@@ -156,6 +168,7 @@
       fallbackLink: "clique ici",
       errorTitle: "Lien invalide",
       errorSubtitle: "Cette playlist n'a pas pu être chargée. Demande à ton ami de te renvoyer le lien.",
+      loading: "Chargement de la playlist…",
       more: "encore"
     },
     en: {
@@ -167,12 +180,14 @@
       fallbackLink: "click here",
       errorTitle: "Invalid link",
       errorSubtitle: "This playlist couldn't be loaded. Ask your friend to send the link again.",
+      loading: "Loading playlist…",
       more: "more"
     }
   };
 
   var APP_STORE_URL = "https://apps.apple.com/app/id6779609511";
   var PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.room79.reelr";
+  var DATA_ENDPOINT = "https://reelr-link-shortener.myreelr.workers.dev/data/";
 
   function detectLang() {
     var nav = navigator.language || navigator.userLanguage || "en";
@@ -192,61 +207,60 @@
     return APP_STORE_URL;
   }
 
-  function decodePlaylist() {
-    var params = new URLSearchParams(window.location.search);
-    var name = params.get("name");
-    var itemsParam = params.get("items");
-    if (!name || !itemsParam) return null;
-    try {
-      var base64 = itemsParam.replace(/-/g, "+").replace(/_/g, "/");
-      var padded = base64 + "===".slice((base64.length + 3) % 4);
-      var json = decodeURIComponent(escape(window.atob(padded)));
-      var items = JSON.parse(json);
-      if (!Array.isArray(items) || items.length === 0) return null;
-      return { name: name, items: items };
-    } catch (e) {
-      return null;
-    }
-  }
-
   function escapeHtml(str) {
     var div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
   }
 
-  function render() {
-    var lang = detectLang();
-    var t = STRINGS[lang];
-    var platform = detectPlatform();
-    var playlist = decodePlaylist();
+  function showLoading(t) {
+    var content = document.getElementById("content");
+    content.innerHTML =
+      '<div class="card loading-card">' +
+        '<div class="spinner"></div>' +
+        '<div>' + t.loading + '</div>' +
+      '</div>';
+  }
+
+  function showError(t) {
+    var content = document.getElementById("content");
+    content.innerHTML =
+      '<div class="card error-card">' +
+        '<div class="title">' + t.errorTitle + '</div>' +
+        '<div class="subtitle">' + t.errorSubtitle + '</div>' +
+      '</div>';
+  }
+
+  function decodeItems(encoded) {
+    var base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+    var padded = base64 + "===".slice((base64.length + 3) % 4);
+    var json = decodeURIComponent(escape(window.atob(padded)));
+    var items = JSON.parse(json);
+    if (!Array.isArray(items) || items.length === 0) return null;
+    return items;
+  }
+
+  function renderPlaylist(t, platform, name, items, code) {
     var content = document.getElementById("content");
 
-    if (!playlist) {
-      content.innerHTML =
-        '<div class="card error-card">' +
-          '<div class="title">' + t.errorTitle + '</div>' +
-          '<div class="subtitle">' + t.errorSubtitle + '</div>' +
-        '</div>';
-      return;
-    }
-
-    var rawParams = window.location.search;
-    var appLink = "reelr://playlist" + rawParams;
+    // Le lien vers l'app ne transporte lui aussi que le code — l'app ira
+    // chercher les données via le même endpoint /data/:code, jamais dans
+    // l'URL elle-même.
+    var appLink = "reelr://playlist?code=" + encodeURIComponent(code);
     var storeUrl = storeUrlFor(platform);
 
     var maxThumbs = 6;
     var thumbsHtml = "";
-    playlist.items.slice(0, maxThumbs).forEach(function (item) {
+    items.slice(0, maxThumbs).forEach(function (item) {
       var bg = item.th ? 'style="background-image:url(\'' + escapeHtml(item.th) + '\')"' : "";
       thumbsHtml += '<div class="thumb" ' + bg + '></div>';
     });
-    if (playlist.items.length > maxThumbs) {
-      thumbsHtml += '<div class="thumb-more">+' + (playlist.items.length - maxThumbs) + '</div>';
+    if (items.length > maxThumbs) {
+      thumbsHtml += '<div class="thumb-more">+' + (items.length - maxThumbs) + '</div>';
     }
 
-    var title = t.titleTemplate.replace("{name}", escapeHtml(playlist.name));
-    var subtitle = t.subtitleTemplate.replace("{count}", playlist.items.length);
+    var title = t.titleTemplate.replace("{name}", escapeHtml(name));
+    var subtitle = t.subtitleTemplate.replace("{count}", items.length);
 
     content.innerHTML =
       '<div class="card">' +
@@ -284,7 +298,37 @@
     });
   }
 
-  render();
+  function init() {
+    var lang = detectLang();
+    var t = STRINGS[lang];
+    var platform = detectPlatform();
+    var params = new URLSearchParams(window.location.search);
+    var code = params.get("code");
+
+    if (!code) {
+      showError(t);
+      return;
+    }
+
+    showLoading(t);
+
+    fetch(DATA_ENDPOINT + encodeURIComponent(code))
+      .then(function (res) {
+        if (!res.ok) throw new Error("fetch failed");
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data || !data.name || !data.items) throw new Error("invalid data");
+        var items = decodeItems(data.items);
+        if (!items) throw new Error("invalid items");
+        renderPlaylist(t, platform, data.name, items, code);
+      })
+      .catch(function () {
+        showError(t);
+      });
+  }
+
+  init();
 })();
 </script>
 </body>
