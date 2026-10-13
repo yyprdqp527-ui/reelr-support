@@ -243,10 +243,30 @@
     return "unknown";
   }
 
-  function storeUrlFor(platform) {
+  function storeUrlFor(platform, code) {
     if (platform === "ios") return APP_STORE_URL;
-    if (platform === "android") return PLAY_STORE_URL;
+    if (platform === "android") {
+      // Lien différé Android : le Play Store transmet « referrer » à l'app
+      // après installation (Play Install Referrer).
+      return code
+        ? PLAY_STORE_URL + "&referrer=" + encodeURIComponent("playlist=" + code)
+        : PLAY_STORE_URL;
+    }
     return APP_STORE_URL;
+  }
+
+  // Lien différé : copie le lien de la playlist dans le presse-papiers,
+  // pour que Reelr le retrouve à son premier lancement après installation.
+  // Doit être appelé pendant un clic (exigence de Safari).
+  function copyPlaylistLink(code) {
+    var link = code
+      ? "https://yyprdqp527-ui.github.io/reelr-support/playlist.html?code=" + encodeURIComponent(code)
+      : window.location.href;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).catch(function () {});
+      }
+    } catch (e) {}
   }
 
   function escapeHtml(str) {
@@ -385,7 +405,7 @@
         (code ? "code=" + encodeURIComponent(code) + "&" : "") +
         "name=" + encodeURIComponent(name) +
         "&items=" + encodeURIComponent(rawEncodedItems);
-    var storeUrl = storeUrlFor(platform);
+    var storeUrl = storeUrlFor(platform, code);
 
     var maxThumbs = 6;
     var thumbsHtml = "";
@@ -406,7 +426,7 @@
         '<div class="subtitle">' + subtitle + '</div>' +
         '<div class="thumbs">' + thumbsHtml + '</div>' +
         '<a class="cta" id="openBtn" href="' + appLink + '">' + t.cta + '</a>' +
-        '<div class="fallback-note">' + t.fallbackNote + ' <a href="' + storeUrl + '">' + t.fallbackLink + '</a></div>' +
+        '<div class="fallback-note">' + t.fallbackNote + ' <a id="storeLink" href="' + storeUrl + '">' + t.fallbackLink + '</a></div>' +
       '</div>';
     preloadThumbnails(t);
 
@@ -416,7 +436,11 @@
     // qu'une navigation déclenchée en JS. Le lien navigue naturellement ;
     // on programme juste un repli vers le store, annulé dès que la page
     // quitte le premier plan (preuve que l'app s'est ouverte).
+    document.getElementById("storeLink").addEventListener("click", function () {
+      copyPlaylistLink(code);
+    });
     openBtn.addEventListener("click", function () {
+      copyPlaylistLink(code);
       var redirected = false;
       var toStore = function () {
         if (redirected) return;
