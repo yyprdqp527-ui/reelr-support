@@ -108,6 +108,14 @@
     border-radius: 50%;
     object-fit: contain;
   }
+  /* Logo de site : pastille blanche, sinon un logo sombre disparait. */
+  .thumb-platform-logo.site-logo {
+    width: 44px;
+    height: 44px;
+    padding: 6px;
+    border-radius: 10px;
+    background: #fff;
+  }
   .thumb-unavailable-badge {
     position: absolute;
     left: 4px;
@@ -288,7 +296,10 @@
 
   // Si le logo ne charge pas, il disparaît : le bandeau reste.
   function logoImgHtml(logo) {
-    return logo ? '<img class="thumb-platform-logo" src="' + escapeHtml(logo) + '" onerror="this.remove()">' : "";
+    if (!logo) return "";
+    var isSite = logo.indexOf(FAVICON_ENDPOINT) === 0;
+    return '<img class="thumb-platform-logo' + (isSite ? ' site-logo' : '') + '" src="' +
+      escapeHtml(logo) + '" onerror="this.remove()">';
   }
 
   var _thumbCounter = 0;
