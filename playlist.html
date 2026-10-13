@@ -333,8 +333,11 @@
     // savent lire que ce format). Cette redondance n'a aucun cout : ce lien
     // n'est jamais envoye par SMS, seule la limite de taille du lien court
     // partage par SMS comptait (voir handleRedirect cote Worker).
-    var appLink = "reelr://playlist?code=" + encodeURIComponent(code) +
-        "&name=" + encodeURIComponent(name) +
+    // Lien de secours sans code (Worker injoignable au moment du partage) :
+    // on n'envoie que name/items, que toutes les versions de l'app lisent.
+    var appLink = "reelr://playlist?" +
+        (code ? "code=" + encodeURIComponent(code) + "&" : "") +
+        "name=" + encodeURIComponent(name) +
         "&items=" + encodeURIComponent(rawEncodedItems);
     var storeUrl = storeUrlFor(platform);
 
@@ -395,7 +398,20 @@
     var code = params.get("code");
 
     if (!code) {
-      showError(t);
+      // Lien long de secours : toute la playlist est dans l'adresse.
+      var name = params.get("name");
+      var rawItems = params.get("items");
+      if (!name || !rawItems) {
+        showError(t);
+        return;
+      }
+      try {
+        var localItems = decodeItems(rawItems);
+        if (!localItems) throw new Error("invalid items");
+        renderPlaylist(t, platform, name, localItems, null, rawItems);
+      } catch (e) {
+        showError(t);
+      }
       return;
     }
 
