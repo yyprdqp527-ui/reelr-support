@@ -186,7 +186,7 @@
     fr: {
       eyebrow: "PLAYLIST PARTAGÉE",
       titleTemplate: "Un ami te propose de découvrir sa playlist « {name} »",
-      subtitleTemplate: "{count} vidéo(s) sélectionnée(s) pour toi. Ouvre-la dans Reelr pour choisir celles que tu veux garder.",
+      subtitleTemplate: "{count} lien(s) sélectionné(s) pour toi. Ouvre-la dans Reelr pour choisir ceux que tu veux garder.",
       cta: "Ouvrir dans Reelr",
       fallbackNote: "Tu n'as pas encore Reelr ? Tu vas être redirigé vers le store dans un instant, ou",
       fallbackLink: "clique ici",
@@ -199,7 +199,7 @@
     en: {
       eyebrow: "SHARED PLAYLIST",
       titleTemplate: "A friend wants to share their playlist \u201c{name}\u201d",
-      subtitleTemplate: "{count} video(s) picked for you. Open it in Reelr to choose the ones you want to keep.",
+      subtitleTemplate: "{count} link(s) picked for you. Open it in Reelr to choose the ones you want to keep.",
       cta: "Open in Reelr",
       fallbackNote: "Don't have Reelr yet? You'll be redirected to the store shortly, or",
       fallbackLink: "click here",
@@ -214,6 +214,7 @@
   var APP_STORE_URL = "https://apps.apple.com/app/id6779609511";
   var PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.room79.reelr";
   var DATA_ENDPOINT = "https://reelr-link-shortener.myreelr.workers.dev/data/";
+  var FAVICON_ENDPOINT = "https://reelr-proxy.myreelr.workers.dev/favicon?url=";
 
   function detectLang() {
     var nav = navigator.language || navigator.userLanguage || "en";
@@ -257,11 +258,37 @@
     return null;
   }
 
+  // Logo à afficher : celui de la plateforme, sinon celui du site.
+  function logoFor(url) {
+    return platformLogoFor(url) || (url ? FAVICON_ENDPOINT + encodeURIComponent(url) : null);
+  }
+
+  // Nom du site sans « www. » (ex. « amazon.fr »), ou null.
+  function siteNameFor(url) {
+    try {
+      return new URL(url).hostname.replace(/^www\./i, "") || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Bandeau du bas : « Vignette non disponible » pour un réseau social,
+  // le nom du site pour un site quelconque (plus utile, jamais vide).
+  function badgeFor(url, t) {
+    var label = platformLogoFor(url) ? t.thumbUnavailable : (siteNameFor(url) || t.thumbUnavailable);
+    return '<div class="thumb-unavailable-badge">' + escapeHtml(label) + '</div>';
+  }
+
+  // Si le logo ne charge pas, il disparaît : le bandeau reste.
+  function logoImgHtml(logo) {
+    return logo ? '<img class="thumb-platform-logo" src="' + escapeHtml(logo) + '" onerror="this.remove()">' : "";
+  }
+
   var _thumbCounter = 0;
 
   function thumbHtmlFor(item, t) {
-    var logo = platformLogoFor(item.u);
-    var badge = '<div class="thumb-unavailable-badge">' + t.thumbUnavailable + '</div>';
+    var logo = logoFor(item.u);
+    var badge = badgeFor(item.u, t);
     if (item.th) {
       // Vignette connue : tentee en premier ; un passage ulterieur
       // (preloadThumbnails, appele une fois tout le HTML injecte) bascule
@@ -274,24 +301,25 @@
       // commentaire ou d'une chaine JS, et referme le bloc en cours.
       var thumbId = "thumb-" + (_thumbCounter++);
       return '<div class="thumb" id="' + thumbId + '" style="background-image:url(\'' + escapeHtml(item.th) + '\')" ' +
-        'data-thumb-url="' + escapeHtml(item.th) + '" data-thumb-logo="' + escapeHtml(logo || '') + '"></div>';
+        'data-thumb-url="' + escapeHtml(item.th) + '" data-thumb-logo="' + escapeHtml(logo || '') + '" ' +
+        'data-thumb-page="' + escapeHtml(item.u || '') + '"></div>';
     }
-    // Pas de vignette du tout : logo de plateforme direct.
+    // Pas de vignette du tout : logo (plateforme ou site) direct.
     return '<div class="thumb">' +
-      (logo ? '<img class="thumb-platform-logo" src="' + logo + '">' : "") +
+      logoImgHtml(logo) +
       badge +
       '</div>';
   }
 
   function preloadThumbnails(t) {
-    var badge = '<div class="thumb-unavailable-badge">' + t.thumbUnavailable + '</div>';
     document.querySelectorAll(".thumb[data-thumb-url]").forEach(function (el) {
       var url = el.getAttribute("data-thumb-url");
       var logo = el.getAttribute("data-thumb-logo");
+      var page = el.getAttribute("data-thumb-page");
       var img = new Image();
       img.onerror = function () {
         el.style.backgroundImage = "none";
-        el.innerHTML = (logo ? '<img class="thumb-platform-logo" src="' + logo + '">' : "") + badge;
+        el.innerHTML = logoImgHtml(logo) + badgeFor(page, t);
       };
       img.src = url;
     });
